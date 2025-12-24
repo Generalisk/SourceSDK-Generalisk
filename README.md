@@ -1,5 +1,12 @@
 <div align="center">
 
+  [![SDK (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-sdk-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-sdk-windows.yml)
+  
+  [![Half-Life 2 Deathmatch (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2mp-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2mp-windows.yml)
+  [![Team Fortress 2 (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-tf-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-tf-windows.yml)
+
+  ###
+  
   [![Commit Activity](https://img.shields.io/github/commit-activity/w/Generalisk/SourceSDK-Generalisk)](https://github.com/Generalisk/SourceSDK-Generalisk)
   [![Commit Activity](https://img.shields.io/github/commit-activity/m/Generalisk/SourceSDK-Generalisk)](https://github.com/Generalisk/SourceSDK-Generalisk)
   [![Commit Activity](https://img.shields.io/github/commit-activity/y/Generalisk/SourceSDK-Generalisk)](https://github.com/Generalisk/SourceSDK-Generalisk)
