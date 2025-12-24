@@ -1,0 +1,25 @@
+$Macro OUTBINNAME "tf"		[!$SOURCESDK]
+$Macro OUTBINNAME "mod_tf"	[$SOURCESDK]
+
+$Conditional "MOD_LAUNCHER" "1"
+
+$Include "launcher_main_base.vpc"
+
+$Configuration
+{
+	$Compiler
+	{
+		$PreprocessorDefinitions	"$BASE;MOD_APPID=243750" // Replace with your appid if you ship on Steam.
+	}
+}
+
+$Project "Launcher Main (TF)"
+{
+    $Folder "Resource Files" [$WINDOWS]
+    {
+        $File   "launcher_main_tf.rc"		[!$SOURCESDK]
+        $File   "res\tf.ico"			[!$SOURCESDK]
+        $File   "launcher_main_mod_tf.rc"	[$SOURCESDK]
+        $File   "res\mod_tf.ico"		[$SOURCESDK]
+    }
+}

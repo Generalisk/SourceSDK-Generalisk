@@ -1,8 +1,9 @@
-$Macro OUTBINNAME "mod_tf"
+$Macro OUTBINNAME "hl2mp"	[!$SOURCESDK]
+$Macro OUTBINNAME "mod_hl2mp"	[$SOURCESDK]
 
 $Conditional "MOD_LAUNCHER" "1"
 
-$Include "launcher_main.vpc"
+$Include "launcher_main_base.vpc"
 
 $Configuration
 {
@@ -12,11 +13,11 @@ $Configuration
 	}
 }
 
-$Project "Launcher Main (Mod TF)"
+$Project "Launcher Main (HL2MP)"
 {
     $Folder "Resource Files" [$WINDOWS]
     {
-        $File   "launcher_main_mod_tf.rc"
-        $File   "res\mod_tf.ico"
+        $File   "launcher_main_hl2mp.rc"
+        $File   "res\hl2mp.ico"
     }
 }
