@@ -1,0 +1,18 @@
+//-----------------------------------------------------------------------------
+//	shaders_std_hl2.vpc
+//
+//	Project Script for mods to use an an example of how to override shaders
+//-----------------------------------------------------------------------------
+
+$Macro SRCDIR       "..\.."
+$Macro OUTBINNAME   "shaders_std"
+$Macro GAMENAME     "hl2"	[!$SOURCESDK]
+$Macro GAMENAME     "mod_hl2"	[$SOURCESDK]
+
+$Macro OUTBINDIR	"$SRCDIR\..\game\$GAMENAME\bin"
+
+$Include "$SRCDIR\materialsystem\stdshaders\stdshader_dx9_inc.vpc"
+
+$Project "Standard Shader Replacements (HL2)"
+{
+}

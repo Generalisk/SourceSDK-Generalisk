@@ -1,5 +1,5 @@
-$Macro OUTBINNAME "hl2mp"	[!$SOURCESDK]
-$Macro OUTBINNAME "mod_hl2mp"	[$SOURCESDK]
+$Macro OUTBINNAME "hl2"		[!$SOURCESDK]
+$Macro OUTBINNAME "mod_hl2"	[$SOURCESDK]
 
 $Conditional "MOD_LAUNCHER" "1"
 
@@ -13,7 +13,7 @@ $Configuration
 	}
 }
 
-$Project "Launcher Main (HL2MP)"
+$Project "Launcher Main (HL2)"
 {
     $Folder "Resource Files" [$WINDOWS]
     {

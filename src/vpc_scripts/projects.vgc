@@ -17,6 +17,7 @@ $Project "client"
 {
 	"game\client\client_tf.vpc"	[$TF]
 	"game\client\client_hl2mp.vpc"	[$HL2MP]
+	"game\client\client_hl2.vpc"	[$HL2]
 }
 
 $Project "fgdlib"
@@ -28,6 +29,7 @@ $Project "shaders"
 {
 	"materialsystem\stdshaders\shaders_tf.vpc"	[$TF]
 	"materialsystem\stdshaders\shaders_hl2mp.vpc"	[$HL2MP]
+	"materialsystem\stdshaders\shaders_hl2.vpc"	[$HL2]
 }
 
 // Use this project if you want to override all std shaders with your own.
@@ -36,6 +38,7 @@ $Project "shaders_std"
 {
 	"materialsystem\stdshaders\shaders_std_tf.vpc"		[$TF]
 	"materialsystem\stdshaders\shaders_std_hl2mp.vpc"	[$HL2MP]
+	"materialsystem\stdshaders\shaders_std_hl2.vpc"		[$HL2]
 }
 
 $Project "glview"
@@ -52,12 +55,14 @@ $Project "server"
 {
 	"game\server\server_tf.vpc"	[$TF]
 	"game\server\server_hl2mp.vpc"	[$HL2MP]
+	"game\server\server_hl2.vpc"	[$HL2]
 }
 
 $Project "launcher_main"
 {
 	"launcher_main\launcher_main_tf.vpc"	[$TF]
 	"launcher_main\launcher_main_hl2mp.vpc"	[$HL2MP]
+	"launcher_main\launcher_main_hl2.vpc"	[$HL2]
 }
 
 $Project "mathlib"

@@ -2,6 +2,7 @@
 
   [![SDK (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-sdk-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-sdk-windows.yml)
   
+  [![Half-Life 2 (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2-windows.yml)
   [![Half-Life 2 Deathmatch (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2mp-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-hl2mp-windows.yml)
   [![Team Fortress 2 (Windows)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-tf-windows.yml/badge.svg)](https://github.com/Generalisk/SourceSDK-Generalisk/actions/workflows/build-tf-windows.yml)
 
