@@ -1607,6 +1607,7 @@ void CTFPlayerShared::OnConditionAdded( ETFCond eCond )
 	case TF_COND_SNIPERCHARGE_RAGE_BUFF:
 	case TF_COND_CRITBOOSTED_CARD_EFFECT:
 	case TF_COND_CRITBOOSTED_RUNE_TEMP:
+	case TF_COND_MINICRITBOOSTED:
 		OnAddCritBoost();
 		break;
 
@@ -1897,6 +1898,7 @@ void CTFPlayerShared::OnConditionRemoved( ETFCond eCond )
 	case TF_COND_SNIPERCHARGE_RAGE_BUFF:
 	case TF_COND_CRITBOOSTED_CARD_EFFECT:
 	case TF_COND_CRITBOOSTED_RUNE_TEMP:
+	case TF_COND_MINICRITBOOSTED:
 		OnRemoveCritBoost();
 		break;
 
@@ -7456,7 +7458,8 @@ void CTFPlayerShared::UpdateCritBoostEffect( ECritBoostUpdateType eUpdateType )
 	bool bShouldDisplayCritBoostEffect = IsCritBoosted()
 									  || InCond( TF_COND_ENERGY_BUFF )
 									  //|| IsHypeBuffed()
-									  || InCond( TF_COND_SNIPERCHARGE_RAGE_BUFF );
+									  || InCond( TF_COND_SNIPERCHARGE_RAGE_BUFF )
+									  || InCond( TF_COND_MINICRITBOOSTED );
 
 	if ( m_pOuter->GetActiveTFWeapon() )
 	{
