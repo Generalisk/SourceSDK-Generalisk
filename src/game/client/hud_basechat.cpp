@@ -1869,3 +1869,12 @@ void CBaseHudChat::FireGameEvent( IGameEvent *event )
 	}
 #endif
 }
+
+CON_COMMAND( cl_clearchathistory, "Clears the chat history" )
+{
+	CBaseHudChat *pChat = ( CBaseHudChat * ) gHUD.FindElement( "CHudChat" );
+	if ( pChat )
+	{
+		pChat->GetChatHistory()->SetText( "" );
+	}
+}
