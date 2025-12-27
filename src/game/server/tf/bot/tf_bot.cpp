@@ -272,11 +272,11 @@ const char *GetRandomBotName( void )
 		"August 27th 2022",
 		"Bill-san baka desu", // Translates to "Bill's an idiot"
 		// I would write it in actual Japanese characters but that would fuck up the encoding on this file
-		//"Local gamer shut-in",
 		"The Mann, The Myth, The Legend",
 		"Obscure reference",
 		"Funny username lololol",
 		"Xx_ProSniperLord69_xX",
+		//"%KILLERNAME%",
 
 		NULL
 	};
