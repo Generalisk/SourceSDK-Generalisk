@@ -55,6 +55,7 @@
 extern float dispchop; // "-dispchop" tightest number of luxel widths for a patch, used on edges
 extern float g_MaxDispPatchRadius;
 extern int g_SunSamplesAreaLight;
+extern int	 g_iAmbientCubesPerLeaf;
 
 //-----------------------------------------------------------------------------
 // forward declarations
