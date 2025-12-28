@@ -263,7 +263,6 @@ const char *FileSystem_GetLastErrorString()
 	return g_FileSystemError;
 }
 
-
 KeyValues* ReadKeyValuesFile( const char *pFilename )
 {
 	// Read in the gameinfo.txt file and null-terminate it.
@@ -640,6 +639,172 @@ const Source1AppidInfo_t *GetKnownAppidInfo( uint32 nAppid )
 	return nullptr;
 }
 
+#ifndef ENGINE_DLL
+//---------------------------------------------------------------------------------------------
+// Purpose: This function gets the Steam installation path. Calls for platform specific things.
+//---------------------------------------------------------------------------------------------
+static const char *GetSteamInstallationPath()
+{
+	// Steam path to pass over
+	static char szSteamPath[1024] = {};
+#ifdef WIN32
+	// Open the registry to look for the Steam installation.
+	HKEY hKey = nullptr;
+	LSTATUS status = RegOpenKeyEx(
+		HKEY_CURRENT_USER,
+		TEXT( "SOFTWARE\\Valve\\Steam" ),
+		0,
+		KEY_READ,
+		&hKey );
+
+	// Check result
+	if( status != ERROR_SUCCESS )
+		return nullptr;
+
+	// Query the SteamPath key
+	char szPathBuf[1024] = {};
+	DWORD dwBufSize = sizeof( szPathBuf );
+	DWORD dwType = 0;
+	LSTATUS result = RegQueryValueEx( 
+		hKey, 
+		"SteamPath", 
+		NULL, 
+		&dwType, 
+		reinterpret_cast<BYTE*>( szPathBuf ),
+		&dwBufSize );
+
+	// check for the result
+	if( result != ERROR_SUCCESS )
+		return nullptr;
+
+	// Close the registry key, we're done with it
+	RegCloseKey( hKey );
+
+	// Put this in the steam path var.
+	Q_strncpy( szSteamPath, szPathBuf, sizeof( szSteamPath ) );
+#else
+	// No registry on Linux, look for the symlink.
+	const char *pszHomeDir = getenv( "HOME" );
+	const char *pszSteamPath = "/.steam/steam";
+	Q_snprintf( szSteamPath, sizeof( szSteamPath ), "%s%s", pszHomeDir, pszSteamPath );	
+#endif // WIN32 ELSE !WIN32
+	return szSteamPath;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Function for mod based projects to find installed game directories
+// Since non-engine mods don't have access to SteamApps, they can use this.
+// This goes through three steps:
+// 1. Finds the main Steam installation in GetSteamInstallationPath (queries registry on Windows, checks through symlink on others)
+// 2. Parse the libraryfolders.vdf file in Steam's config folder to find the appID
+// 3. Find the appmanifest_appID.acf file and look for the name. If so, return the folder name
+// Note: Slashes are fixed right before it's returned.
+// Input: game appID
+// Output: returns the install directory IF it's installed, otherwise returns nullptr
+//-----------------------------------------------------------------------------
+static const char *GetAppInstallDirNoSteam( int nAppID )
+{
+	// First, get the Steam installation.
+	char szSteamPath[1024] = {};
+	V_strncpy( szSteamPath, GetSteamInstallationPath(), sizeof( szSteamPath ) );
+	if( !szSteamPath || szSteamPath[0] == '\0' )
+		return nullptr;
+
+	// Second, go to the libraryfolders.vdf and look if the appid is in them.
+	char szLibraryFoldersFile[1024] = {};
+	V_snprintf( szLibraryFoldersFile, sizeof( szLibraryFoldersFile ), "%s%s", szSteamPath, "/config/libraryfolders.vdf" );
+	
+	// NOTE: ReadKeyValuesFile already deletes the KV if it doesn't exist
+	// read the libraryfolders.vdf file
+	KeyValues *pRootKV = ReadKeyValuesFile( szLibraryFoldersFile );
+	if( !pRootKV )
+		return nullptr;
+
+	// Get a string representation of the Steam AppID passed
+	char szAppID[32] = {};
+	V_snprintf( szAppID, sizeof( szAppID ), "%d", nAppID );
+
+	// Path KV
+	KeyValues *pPathKV = nullptr;
+
+	// Go thru each possible install path until we find the app.
+	FOR_EACH_TRUE_SUBKEY( pRootKV, pKVPath )
+	{
+		// Check for the apps subkey
+		KeyValues *pApps = pKVPath->FindKey( "apps" );
+		if( !pApps )
+			continue;
+
+		// Try to find the appid path
+		if( pApps->FindKey( szAppID ) )
+		{
+			// Okay, we found the app id key. now use the path key from the root KV
+			pPathKV = pKVPath->FindKey( "path" ); // This is null checked below.
+			break;
+		}
+	}
+
+	// Error out if we can't find it
+	if( !pPathKV )
+		return nullptr;
+
+	// Look for the game that this mod asked for
+	char szInstallationPath[1024] = {};
+	// copy this string over since we're gonna delete the KV
+	V_strncpy( szInstallationPath, pPathKV->GetString(), sizeof( szInstallationPath ) );
+	// If it's empty somehow, error out
+	if( !szInstallationPath || szInstallationPath[0] == '\0' )
+	{
+		// Clear this keyvalue.
+		pRootKV->deleteThis();
+		pRootKV = nullptr;
+		return nullptr;
+	}
+
+	// we no longer need this KV
+	pRootKV->deleteThis();
+	pRootKV = nullptr;
+
+	// get the appmanifest_APPID.acf file
+	char szAppManifestPath[1024] = {};
+	V_snprintf( szAppManifestPath, sizeof( szAppManifestPath ), "%s%s%s.acf", szInstallationPath, "/steamapps/appmanifest_", szAppID );
+	// Reuse the root pointer to open the appmanifest file
+	pRootKV = ReadKeyValuesFile( szAppManifestPath );
+
+	// Error out if this file can't be found
+	if( !pRootKV )
+		return nullptr;
+
+	// Find the install dir
+	KeyValues *pInstallDirKV = pRootKV->FindKey( "installdir" );
+
+	// Error out if we can't find this key
+	if( !pInstallDirKV )
+		return nullptr;
+
+	// Get the game name to get it from the common dir.
+	// Again, deleting the KV after this
+	char szGameName[256] = {};
+	V_strncpy( szGameName, pInstallDirKV->GetString(), sizeof( szGameName ) );
+
+	if( !szGameName || szGameName[0] == '\0' )
+		return nullptr;
+
+	// Not needed anymore
+	pRootKV->deleteThis();
+	pRootKV = nullptr;
+
+	// Now that we got everything, put it all together
+	static char szAbsoluteGameDirPath[1024] = {};
+	V_snprintf( szAbsoluteGameDirPath, sizeof( szAbsoluteGameDirPath ), "%s%s%s", szInstallationPath, "/common/", szGameName );
+
+	// Fix the slashes before passing it
+	V_FixDoubleSlashes( szAbsoluteGameDirPath ); 
+	V_FixSlashes( szAbsoluteGameDirPath );
+	return szAbsoluteGameDirPath;
+}
+#endif // !ENGINE_DLL
+
 FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 {
 	if ( !initInfo.m_pFileSystem || !initInfo.m_pDirectoryName )
@@ -687,16 +852,12 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 		const char *pszPathID = pCur->GetName();
 		const char *pLocation = pCur->GetString();
 		const char *pszBaseDir = baseDir;
-#ifdef ENGINE_DLL
-		char szAppInstallDir[ 1024 ];
-#endif
 
 		if ( !FileSystem_AllowedSearchPath( pLocation ) )
 			continue;
 
 		if ( Q_stristr( pLocation, APPID_PREFIX_TOKEN ) == pLocation )
 		{
-#ifdef ENGINE_DLL
 			pLocation += strlen( APPID_PREFIX_TOKEN );
 			const char *pNumberLoc = pLocation;
 			int nAppId = V_atoi( pNumberLoc );
@@ -712,14 +873,17 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 				Error( "Can't mount content from invalid appid." );
 			}
 
+			// Get the known appid info
+			const Source1AppidInfo_t *pKnownAppid = GetKnownAppidInfo( nAppId );
+			const char *pszAppName = pKnownAppid ? pKnownAppid->pszName : "Unknown";
+
+			// Store the app install directory here.
+			char szAppInstallDir[1024] = {};
+#ifdef ENGINE_DLL
 			if ( !SteamApps() )
 			{
 				Error( "No SteamApps connection." );
 			}
-
-			const Source1AppidInfo_t *pKnownAppid = GetKnownAppidInfo( nAppId );
-
-			const char *pszAppName = pKnownAppid ? pKnownAppid->pszName : "Unknown";
 
 			if ( !SteamApps()->BIsSubscribedApp( nAppId ) )
 			{
@@ -744,10 +908,23 @@ FSReturnCode_t FileSystem_LoadSearchPaths( CFSSearchPathsInit &initInfo )
 			{
 				Error( "Couldn't get install dir for appid: %d", nAppId );
 			}
-			pszBaseDir = szAppInstallDir;
 #else
-			Error( "Appid based mounting is not supported on non-engine DLL projects." );
-#endif
+			// Get the install directory.
+			const char *pszAppDir = GetAppInstallDirNoSteam( nAppId );
+			if( !pszAppDir || pszAppDir[0] == '\0' )
+			{
+				// Tell them to install this game, but we don't have SteamApps here, so let them see the 
+				// "no licenses error" if they don't own this game.
+				char szInstallCommand[4096] = {};
+				V_sprintf_safe( szInstallCommand, "steam://install/%d", nAppId );
+				Plat_OpenURL( szInstallCommand );
+				Error( "This mod requires %s (%d) to be installed. Please install it to play this mod.", pszAppName, nAppId );
+			}
+
+			// Copy the result over to szAppInstallDir.
+			V_strncpy( szAppInstallDir, pszAppDir, sizeof( szAppInstallDir ) );
+#endif // ENGINE_DLL ELSE !ENGINE_DLL
+			pszBaseDir = szAppInstallDir;
 		}
 		else if ( Q_stristr( pLocation, GAMEINFOPATH_TOKEN ) == pLocation )
 		{
