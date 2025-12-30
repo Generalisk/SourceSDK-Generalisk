@@ -494,6 +494,7 @@ public:
 
 	bool ShouldReEvaluateCurrentClass( void ) const;
 	void ReEvaluateCurrentClass( void );
+	bool IsEnemy( const CBaseEntity* ) const;
 	
 public:
 	CountdownTimer m_CompressionBlastTimer;
