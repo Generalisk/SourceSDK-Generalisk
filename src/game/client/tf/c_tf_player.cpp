@@ -76,6 +76,9 @@
 #include "netadr.h"
 #include "input.h"
 
+// for rescue ranger
+#include "materialsystem/imaterialproxy.h"
+
 #include "gcsdk/gcclientsdk.h"
 #include "econ_gcmessages.h"
 #include "rtime.h"
@@ -1696,10 +1699,7 @@ bool CSpyInvisProxy::Init( IMaterial *pMaterial, KeyValues* pKeyValues )
 	return ( bInvis && bTint );
 }
 
-ConVar tf_teammate_max_invis( "tf_teammate_max_invis", "0.75", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY );
-
-Vector cloakTintRed = Vector( 1.0f, 0.5f, 0.4f );
-Vector cloakTintBlue = Vector( 0.4f, 0.5f, 1.0f );
+ConVar tf_teammate_max_invis( "tf_teammate_max_invis", "0.95", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY );
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -1731,21 +1731,22 @@ void CSpyInvisProxy::OnBind( C_BaseEntity *pBaseEntity )
 	}
 	else
 	{
-		Vector vecColor{ 1.0f, 1.0f, 1.0f };
+		float r = 1.0f, g = 1.0f, b = 1.0f;
 		fInvis = pPlayer->GetEffectiveInvisibilityLevel();
 
 		switch( pPlayer->GetTeamNumber() )
 		{
 		case TF_TEAM_RED:
-			vecColor = cloakTintRed;
+			r = 1.0; g = 0.5; b = 0.4;
 			break;
+
 		case TF_TEAM_BLUE:
 		default:
-			vecColor = cloakTintBlue;
+			r = 0.4; g = 0.5; b = 1.0;
 			break;
 		}
 
-		m_pCloakColorTint->SetVecValue( vecColor.Base(), 3 );
+		m_pCloakColorTint->SetVecValue( r, g, b );
 	}
 
 	m_pPercentInvisible->SetFloatValue( fInvis );
@@ -1762,169 +1763,6 @@ void CSpyInvisProxy::OnBindNotEntity( void *pRenderable )
 }
 
 EXPOSE_INTERFACE( CSpyInvisProxy, IMaterialProxy, "spy_invis" IMATERIAL_PROXY_INTERFACE_VERSION );
-
-//-----------------------------------------------------------------------------
-// Purpose: Generic invis proxy that can handle invis for both weapons & viewmodels.
-//			Makes the vm_invis & weapon_invis proxies obsolete, do not use them.
-//-----------------------------------------------------------------------------
-class CInvisProxy : public CBaseInvisMaterialProxy
-{
-public:
-	CInvisProxy( void );
-	virtual bool Init( IMaterial* pMaterial, KeyValues* pKeyValues ) OVERRIDE;
-	virtual void OnBind( C_BaseEntity *pC_BaseEntity ) OVERRIDE;
-
-private:
-	IMaterialVar* m_pCloakColorTint;
-};
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-CInvisProxy::CInvisProxy( void )
-{
-	m_pCloakColorTint = NULL;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Get pointer to the color value
-// Input  : *pMaterial - 
-//-----------------------------------------------------------------------------
-bool CInvisProxy::Init( IMaterial* pMaterial, KeyValues* pKeyValues )
-{
-	// Need to get the material var
-	bool bInvis = CBaseInvisMaterialProxy::Init( pMaterial, pKeyValues );
-
-	bool bTint;
-	m_pCloakColorTint = pMaterial->FindVar( "$cloakColorTint", &bTint );
-
-	return ( bInvis && bTint );
-}
-
-ConVar tf_viewmodel_cloak_tint( "tf_viewmodel_cloak_tint", "0", FCVAR_ARCHIVE, "Allow viewmodels to be tinted while cloaked.", true, 0.0f, true, 1.0f );
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CInvisProxy::OnBind( C_BaseEntity *pC_BaseEntity )
-{
-	if( !m_pPercentInvisible )
-		return;
-
-	C_BaseEntity *pEnt = pC_BaseEntity;
-
-	C_TFPlayer *pPlayer = NULL;
-	float flCloakTintFactor = 1.0f;
-
-	// Check if we are parented to a player
-	C_BaseEntity *pMoveParent = pEnt->GetMoveParent();
-	if ( pMoveParent && pMoveParent->IsPlayer() )
-	{
-		pPlayer = ToTFPlayer( pMoveParent );
-	}
-
-	// Check if we are a viewmodel
-	if ( !pPlayer )
-	{
-		CBaseEntity *pEntParent = pMoveParent ? pMoveParent : pEnt;
-
-		CTFViewModel *pVM = dynamic_cast<CTFViewModel *>( pEntParent );
-		if ( pVM )
-		{
-			pPlayer = ToTFPlayer( pVM->GetOwner() );
-			
-			// Viewmodels use a convar for cloak tint factor
-			flCloakTintFactor = tf_viewmodel_cloak_tint.GetFloat();
-		}
-	}
-	
-	// Check if we are a player
-	if ( !pPlayer )
-	{
-		if ( pEnt->IsPlayer() )
-		{
-			pPlayer = dynamic_cast<C_TFPlayer*>( pEnt );
-		}
-		else
-		{
-			IHasOwner *pOwnerInterface = dynamic_cast<IHasOwner*>( pEnt );
-			if ( pOwnerInterface )
-			{
-				pPlayer = ToTFPlayer( pOwnerInterface->GetOwnerViaInterface() );
-			}
-		}
-	}
-	
-	// Check if we are a ragdoll, otherwise give up
-	if ( !pPlayer )
-	{
-		C_TFRagdoll *pRagdoll = dynamic_cast<C_TFRagdoll*>( pEnt );
-		if ( pRagdoll && pRagdoll->IsCloaked() )
-		{
-			m_pPercentInvisible->SetFloatValue( pRagdoll->GetPercentInvisible() );
-		}
-		else
-		{
-			m_pPercentInvisible->SetFloatValue( 0.0f );
-		}
-		return;
-	}
-
-	// Cloak tinting
-	Vector vecColor{ 1.0f, 1.0f, 1.0f };
-
-	if ( pPlayer )
-	{
-		// We were validated, color as necessary
-		switch ( pPlayer->GetTeamNumber() )
-		{
-		case TF_TEAM_RED:
-			vecColor = cloakTintRed;
-			break;
-		case TF_TEAM_BLUE:
-		default:
-			vecColor = cloakTintBlue;
-			break;
-		}
-	}
-
-	// Blend the color based on cloak tint factor, if applicable
-	if( flCloakTintFactor != 1.0f )
-	{
-		VectorLerp( Vector( 1.0f, 1.0f, 1.0f ), vecColor, flCloakTintFactor, vecColor );
-	}
-	m_pCloakColorTint->SetVecValue( vecColor.Base(), 3 );
-
-	// Handle the local player
-	if ( pPlayer->IsLocalPlayer() )
-	{
-		float flPercentInvisible = pPlayer->GetEffectiveInvisibilityLevel();
-		float flWeaponInvis = flPercentInvisible;
-
-		// Reveal ourself a little when bumping into players
-		if ( pPlayer->m_Shared.InCond( TF_COND_STEALTHED_BLINK ) )
-		{
-			flWeaponInvis = 0.3f;
-		}
-
-		// Reveal ourself a little if we're using motion cloak and our well has run dry
-		CTFWeaponInvis *pWpn = (CTFWeaponInvis *) pPlayer->Weapon_OwnsThisID( TF_WEAPON_INVIS );
-		if ( pWpn && pWpn->HasMotionCloak() && (pPlayer->m_Shared.GetSpyCloakMeter() <= 0.f ) )
-		{
-			flWeaponInvis = 0.3f;
-		}
-
-		m_pPercentInvisible->SetFloatValue( flWeaponInvis );
-	}
-	else
-	{
-		m_pPercentInvisible->SetFloatValue( pPlayer->GetEffectiveInvisibilityLevel() );
-	}
-}
-
-//	Generic invis proxy that can handle invis for both weapons & viewmodels.
-//	Makes the vm_invis & weapon_invis proxies obsolete, do not use them.
-EXPOSE_INTERFACE( CInvisProxy, IMaterialProxy, "invis" IMATERIAL_PROXY_INTERFACE_VERSION );
 
 //-----------------------------------------------------------------------------
 // Purpose: Used for invulnerability material
@@ -2207,7 +2045,7 @@ public:
 				vResult = Vector( 50, 2, 48 );
 				pPlayer->m_Shared.m_bChargeGlowing = false;
 			}
-			else if ( pPlayer->m_Shared.InCond( TF_COND_OFFENSEBUFF ) || pPlayer->m_Shared.InCond( TF_COND_ENERGY_BUFF ) || pPlayer->m_Shared.InCond( TF_COND_MINICRITBOOSTED ) )
+			else if ( pPlayer->m_Shared.InCond( TF_COND_OFFENSEBUFF ) || pPlayer->m_Shared.InCond( TF_COND_ENERGY_BUFF ) )
 			{
 				// Temporarily hijacking this proxy for buff FX.
 				if ( iVisibleTeam == TF_TEAM_RED )
@@ -2454,12 +2292,31 @@ public:
 EXPOSE_INTERFACE( CProxyBenefactorLevel, IMaterialProxy, "BenefactorLevel" IMATERIAL_PROXY_INTERFACE_VERSION );
 
 //-----------------------------------------------------------------------------
-// Purpose: Used for scaling the oscilloscope on the Building Rescue Gun
-// Flattens the Wave when the player has no energy
+// Purpose: Used for scaling the oscilloscope on the Rescue Ranger
+// Flattens the Wave when the player has insufficent energy to rescue buildings
+// Wave has horizontal scrolling whose speed and direction can be controlled from material proxy
 //-----------------------------------------------------------------------------
+
 class CProxyBuildingRescueLevel : public CResultProxy
 {
 public:
+// Add this member (default to something safe)
+    float m_flScrollSpeed = -0.1f;
+
+    virtual bool Init( IMaterial *pMaterial, KeyValues *pKeyValues )
+    {
+        // Call base init first if needed
+        if ( !CResultProxy::Init( pMaterial, pKeyValues ) )
+            return false;
+
+        // pKeyValues points to the { "screenScrollRate" "#" ... } subkey
+        if ( pKeyValues )
+        {
+            m_flScrollSpeed = pKeyValues->GetFloat( "screenScrollRate", -0.1f );  // fallback if missing
+        }
+
+        return true;
+    }
 	void OnBind( void *pC_BaseEntity )
 	{
 		Assert( m_pResult );
@@ -2503,6 +2360,17 @@ public:
 		MatrixBuildTranslation( temp, center.x, center.y, 0.0f );
 		MatrixMultiply( temp, mat, mat );
 
+
+		float flScrollSpeed = m_flScrollSpeed;
+
+		float scrollOffset = fmodf( gpGlobals->curtime * flScrollSpeed, 1.0f );
+		if ( scrollOffset < 0.0f )
+			scrollOffset += 1.0f;  // [0,1) range for seamless loop
+
+		// Apply horizontal scroll AFTER the existing scale/center operations
+		MatrixBuildTranslation( temp, scrollOffset, 0.0f, 0.0f );
+		MatrixMultiply( temp, mat, mat );
+
 		m_pResult->SetMatrixValue( mat );
 
 		if ( ToolsEnabled() )
@@ -2512,7 +2380,7 @@ public:
 	}
 };
 
-EXPOSE_INTERFACE( CProxyBuildingRescueLevel, IMaterialProxy, "BuildingRescueLevel" IMATERIAL_PROXY_INTERFACE_VERSION );
+EXPOSE_INTERFACE(CProxyBuildingRescueLevel, IMaterialProxy, "BuildingRescueLevel" IMATERIAL_PROXY_INTERFACE_VERSION);
 
 
 //-----------------------------------------------------------------------------
