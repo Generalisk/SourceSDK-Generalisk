@@ -311,9 +311,6 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 		if ( !client->CanHearAndReadChatFrom( pPlayer ) )
 			continue;
 
-		if ( GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayerChat( pPlayer->entindex(), i ) )
-			continue;
-
 		CSingleUserRecipientFilter user( client );
 		user.MakeReliable();
 
